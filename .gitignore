@@ -1,0 +1,28 @@
+# Credenciais e variáveis locais
+.env
+**/.env
+
+# Ambientes Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Dados e saídas geradas localmente
+**/output/
+**/dados/
+**/data/
+**/logs/
+
+# Arquivos temporários
+*.tmp
+*.log
+
+# Power BI
+*.pbix
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
