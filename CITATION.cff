@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "Se você utilizar este software, cite este repositório."
+title: "Solução Analítica para Conformidade e Desempenho no SEI"
+type: software
+authors:
+  - family-names: "Santos Araujo Rocha"
+    given-names: "Cassio"
+version: 1.0.0
+date-released: 2026-08-13
