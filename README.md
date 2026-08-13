@@ -166,3 +166,11 @@ Este repositório não disponibiliza:
 - arquivos `.pbix` com dados carregados.
 
 Os arquivos publicados destinam-se à demonstração, reprodução metodológica e transferência da solução.
+
+## Licença
+
+O código-fonte disponibilizado neste repositório é licenciado sob a [MIT License](LICENSE), permitindo seu uso, cópia, modificação e redistribuição nos termos da licença.
+
+Essa autorização aplica-se aos componentes de código da solução, incluindo scripts Python, consultas SQL e medidas DAX.
+
+Os documentos, modelos, planilhas de parametrização e demais materiais acadêmicos disponibilizados no repositório não são abrangidos pela licença MIT, salvo indicação expressa em contrário, devendo ser utilizados com a devida atribuição de autoria e referência à pesquisa.
