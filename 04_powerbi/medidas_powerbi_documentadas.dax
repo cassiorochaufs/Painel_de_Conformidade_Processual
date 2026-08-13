@@ -1,0 +1,392 @@
+/*
+===============================================================================
+POWER BI - MEDIDAS E COLUNAS DAX
+Solução analítica para monitoramento de conformidade e desempenho no SEI
+Aplicação ao processo de cessão de servidores da UFS
+
+Tabela de referência:
+    'public vw_cessao'
+
+Objetivo deste arquivo:
+    Documentar as medidas e colunas calculadas utilizadas na camada de
+    visualização do Power BI.
+
+Observações metodológicas:
+    1. Lead Time:
+       duração cronológica total da instância processual, desde o primeiro
+       Data_Inicio até a última Data_Fim. Para processos com etapa ainda aberta,
+       a rotina utiliza TODAY() como data de corte, preservando a lógica adotada
+       na Prova de Conceito.
+
+    2. Cycle Time:
+       duração cronológica observada de cada episódio/macroetapa da view
+       vw_cessao. Para episódios em andamento, utiliza NOW() como instante de
+       corte.
+
+    3. Os timestamps do SEI permitem mensurar tempo cronológico observado.
+       Eles não distinguem automaticamente tempo de trabalho ativo de tempo de
+       espera.
+
+    4. A coluna Limite_Legal_Dias representa a parametrização temporal adotada
+       especificamente para o processo de cessão analisado. Ela não deve ser
+       reutilizada automaticamente em outros processos administrativos.
+
+    5. Os rótulos de "prazo" e "atraso" devem ser interpretados em relação ao
+       parâmetro temporal operacionalizado no modelo analítico. A qualificação
+       jurídica de uma ocorrência depende da norma aplicável e das condições
+       concretas do processo.
+
+    6. Ao adaptar a solução para outro processo, revise obrigatoriamente:
+       - unidades/macroatividades;
+       - parâmetros temporais;
+       - regras de classificação;
+       - nomes das tabelas e colunas.
+===============================================================================
+*/
+
+
+// ============================================================================
+// 1. TEMPO MEDIANO DO PROCESSO
+// ============================================================================
+//
+// Finalidade:
+//     Calcula a mediana da duração total das instâncias processuais.
+//
+// Granularidade:
+//     Processo.
+//
+// Regra:
+//     - Processo concluído: primeira Data_Inicio -> última Data_Fim.
+//     - Processo com etapa aberta: primeira Data_Inicio -> TODAY().
+//
+// Unidade:
+//     Dias decimais.
+//
+// Observação:
+//     O cálculo é feito em minutos e convertido para dias para preservar
+//     frações de dia.
+//
+Tempo Mediano (Dias/Espera) =
+MEDIANX(
+    VALUES('public vw_cessao'[Processo]),
+
+    VAR _MinInicio =
+        CALCULATE(
+            MIN('public vw_cessao'[Data_Inicio])
+        )
+
+    VAR _TemEmAndamento =
+        CALCULATE(
+            COUNTROWS('public vw_cessao'),
+            'public vw_cessao'[Status_Etapa] = "Em Andamento"
+        ) > 0
+
+    VAR _FimCalculo =
+        IF(
+            _TemEmAndamento,
+            TODAY(),
+            CALCULATE(
+                MAX('public vw_cessao'[Data_Fim])
+            )
+        )
+
+    RETURN
+        DATEDIFF(
+            _MinInicio,
+            _FimCalculo,
+            MINUTE
+        ) / 1440.0
+)
+
+
+// ============================================================================
+// 2. LEAD TIME DO PROCESSO
+// ============================================================================
+//
+// Finalidade:
+//     Calcula a duração cronológica total da instância processual no contexto
+//     de filtro corrente.
+//
+// Granularidade:
+//     Processo.
+//
+// Regra:
+//     - Se houver etapa aberta, utiliza TODAY() como data de corte.
+//     - Caso contrário, utiliza a maior Data_Fim registrada.
+//
+// Unidade:
+//     Dias decimais.
+//
+Lead Time do Processo (Dias) =
+VAR _TemEtapaAberta =
+    CALCULATE(
+        COUNTROWS('public vw_cessao'),
+        'public vw_cessao'[Status_Etapa] = "Em Andamento"
+    ) > 0
+
+VAR _DataInicio =
+    MIN('public vw_cessao'[Data_Inicio])
+
+VAR _DataFinal =
+    IF(
+        _TemEtapaAberta,
+        TODAY(),
+        MAX('public vw_cessao'[Data_Fim])
+    )
+
+RETURN
+    DATEDIFF(
+        _DataInicio,
+        _DataFinal,
+        MINUTE
+    ) / 1440.0
+
+
+// ============================================================================
+// 3. CYCLE TIME MÉDIO
+// ============================================================================
+//
+// Finalidade:
+//     Calcula a média da duração dos episódios/macroetapas representados pelas
+//     linhas da vw_cessao.
+//
+// Granularidade:
+//     Episódio de tramitação (Processo + Unidade + StayID).
+//
+// Regra:
+//     - Episódio concluído: Data_Inicio -> Data_Fim.
+//     - Episódio em andamento: Data_Inicio -> NOW().
+//
+// Unidade:
+//     Dias decimais.
+//
+Cycle Time Médio =
+AVERAGEX(
+    'public vw_cessao',
+
+    VAR _FimCalculo =
+        IF(
+            'public vw_cessao'[Status_Etapa] = "Em Andamento",
+            NOW(),
+            'public vw_cessao'[Data_Fim]
+        )
+
+    RETURN
+        DATEDIFF(
+            'public vw_cessao'[Data_Inicio],
+            _FimCalculo,
+            MINUTE
+        ) / 1440.0
+)
+
+
+// ============================================================================
+// 4. CYCLE TIME MEDIANO
+// ============================================================================
+//
+// Finalidade:
+//     Calcula a mediana da duração dos episódios/macroetapas.
+//
+// Granularidade:
+//     Episódio de tramitação (Processo + Unidade + StayID).
+//
+// Unidade:
+//     Dias decimais.
+//
+// Utilidade:
+//     A mediana reduz a influência de episódios excepcionalmente longos quando
+//     comparada à média.
+//
+Cycle Time Mediano =
+MEDIANX(
+    'public vw_cessao',
+
+    VAR _FimCalculo =
+        IF(
+            'public vw_cessao'[Status_Etapa] = "Em Andamento",
+            NOW(),
+            'public vw_cessao'[Data_Fim]
+        )
+
+    RETURN
+        DATEDIFF(
+            'public vw_cessao'[Data_Inicio],
+            _FimCalculo,
+            MINUTE
+        ) / 1440.0
+)
+
+
+// ============================================================================
+// 5. DESVIO PADRÃO DO CYCLE TIME
+// ============================================================================
+//
+// Finalidade:
+//     Mede a dispersão amostral das durações dos episódios/macroetapas.
+//
+// Função:
+//     STDEVX.S = desvio padrão amostral.
+//
+// Regra adicional:
+//     Quando o contexto contém menos de dois episódios, retorna 0 para evitar
+//     resultado indefinido.
+//
+Cycle Time Desvio Padrão =
+VAR _QtdEtapas =
+    COUNTROWS('public vw_cessao')
+
+VAR _CalculoDesvio =
+    STDEVX.S(
+        'public vw_cessao',
+
+        VAR _FimCalculo =
+            IF(
+                'public vw_cessao'[Status_Etapa] = "Em Andamento",
+                NOW(),
+                'public vw_cessao'[Data_Fim]
+            )
+
+        RETURN
+            DATEDIFF(
+                'public vw_cessao'[Data_Inicio],
+                _FimCalculo,
+                MINUTE
+            ) / 1440.0
+    )
+
+RETURN
+    IF(
+        _QtdEtapas < 2,
+        0,
+        _CalculoDesvio
+    )
+
+
+// ============================================================================
+// 6. PERCENTUAL DE ETAPAS DENTRO DO PARÂMETRO TEMPORAL
+// ============================================================================
+//
+// Finalidade:
+//     Calcula a proporção de episódios cuja duração observada é menor ou igual
+//     ao parâmetro definido em Limite_Legal_Dias.
+//
+// Formatação recomendada no Power BI:
+//     Percentual.
+//
+// Ajuste de robustez:
+//     A versão documentada testa explicitamente _Etapas = 0. COUNTROWS()
+//     retorna 0 quando não há linhas, e não BLANK().
+//
+% Etapas no Prazo Legal =
+VAR _Etapas =
+    COUNTROWS('public vw_cessao')
+
+VAR _EtapasNoPrazo =
+    CALCULATE(
+        COUNTROWS('public vw_cessao'),
+        'public vw_cessao'[Duracao_Decimal_Dias]
+            <= 'public vw_cessao'[Limite_Legal_Dias]
+    )
+
+RETURN
+    IF(
+        _Etapas = 0,
+        BLANK(),
+        DIVIDE(
+            COALESCE(_EtapasNoPrazo, 0),
+            _Etapas,
+            0
+        )
+    )
+
+
+// ============================================================================
+// 7. COLUNA CALCULADA: LIMITE TEMPORAL OPERACIONALIZADO
+// ============================================================================
+//
+// Tipo:
+//     Coluna calculada.
+//
+// Finalidade:
+//     Atribuir a cada episódio o parâmetro temporal utilizado na interpretação
+//     do processo de cessão na Prova de Conceito.
+//
+// Regra implementada:
+//     - Unidade GR na primeira ocorrência cronológica do processo: 5 dias.
+//     - Demais ocorrências da unidade GR: 30 dias.
+//     - Demais unidades: 5 dias.
+//
+// ATENÇÃO:
+//     Esta é uma regra específica do modelo analítico construído para a cessão.
+//     Não representa um prazo universal para processos administrativos e deve
+//     ser revisada antes de qualquer replicação.
+//
+Limite_Legal_Dias =
+VAR _MinDataProcesso =
+    CALCULATE(
+        MIN('public vw_cessao'[Data_Inicio]),
+        ALLEXCEPT(
+            'public vw_cessao',
+            'public vw_cessao'[Processo]
+        )
+    )
+
+RETURN
+    IF(
+        'public vw_cessao'[Unidade] = "GR",
+        IF(
+            'public vw_cessao'[Data_Inicio] = _MinDataProcesso,
+            5,
+            30
+        ),
+        5
+    )
+
+
+// ============================================================================
+// 8. COLUNA CALCULADA: STATUS DE CONFORMIDADE TEMPORAL
+// ============================================================================
+//
+// Tipo:
+//     Coluna calculada.
+//
+// Finalidade:
+//     Produzir um rótulo de interpretação gerencial a partir da comparação
+//     entre a duração do episódio e Limite_Legal_Dias.
+//
+// Ajuste de completude:
+//     Foi incluída a condição para episódios "Em Andamento" que ainda se
+//     encontram dentro do parâmetro. Sem essa condição, esses registros
+//     retornariam BLANK().
+//
+// Observação:
+//     Os rótulos são destinados à visualização gerencial. A classificação
+//     automática não substitui a análise das condições normativas e do contexto
+//     administrativo de cada ocorrência.
+//
+Status_Conformidade =
+SWITCH(
+    TRUE(),
+
+    'public vw_cessao'[Status_Etapa] = "Concluída"
+        && 'public vw_cessao'[Duracao_Decimal_Dias]
+            <= 'public vw_cessao'[Limite_Legal_Dias],
+        "✅ Concluído no Prazo",
+
+    'public vw_cessao'[Status_Etapa] = "Concluída"
+        && 'public vw_cessao'[Duracao_Decimal_Dias]
+            > 'public vw_cessao'[Limite_Legal_Dias],
+        "❌ Concluído com Atraso",
+
+    'public vw_cessao'[Status_Etapa] = "Em Andamento"
+        && 'public vw_cessao'[Duracao_Decimal_Dias]
+            <= 'public vw_cessao'[Limite_Legal_Dias],
+        "⏳ Em Andamento no Prazo",
+
+    'public vw_cessao'[Status_Etapa] = "Em Andamento"
+        && 'public vw_cessao'[Duracao_Decimal_Dias]
+            > 'public vw_cessao'[Limite_Legal_Dias],
+        "❌ Em Atraso",
+
+    BLANK()
+)
