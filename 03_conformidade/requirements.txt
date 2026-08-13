@@ -1,0 +1,9 @@
+pm4py==2.7.22
+pandas>=2.2,<4
+SQLAlchemy>=2.0
+python-dotenv>=1.0
+openpyxl>=3.1
+
+# Instale o driver do SGBD somente quando utilizar SOURCE_MODE=database.
+# Exemplo PostgreSQL:
+# psycopg[binary]>=3.1
