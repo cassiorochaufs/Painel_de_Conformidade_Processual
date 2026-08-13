@@ -1,0 +1,8 @@
+pandas>=2.0
+selenium>=4.10
+SQLAlchemy>=2.0
+python-dotenv>=1.0
+
+# Instale também o driver do SGBD apenas se utilizar persistência em banco.
+# Exemplo para PostgreSQL:
+# psycopg[binary]>=3.1
