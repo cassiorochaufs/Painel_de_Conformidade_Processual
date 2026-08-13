@@ -174,3 +174,11 @@ O código-fonte disponibilizado neste repositório é licenciado sob a [MIT Lice
 Essa autorização aplica-se aos componentes de código da solução, incluindo scripts Python, consultas SQL e medidas DAX.
 
 Os documentos, modelos, planilhas de parametrização e demais materiais acadêmicos disponibilizados no repositório não são abrangidos pela licença MIT, salvo indicação expressa em contrário, devendo ser utilizados com a devida atribuição de autoria e referência à pesquisa.
+
+## Como citar
+
+Se esta solução, seus códigos ou sua estrutura metodológica forem utilizados em trabalhos acadêmicos ou aplicações institucionais, recomenda-se citar o autor e o repositório.
+
+As informações estruturadas para citação estão disponíveis no arquivo [`CITATION.cff`](CITATION.cff).
+
+**Autor:** Cassio Santos Araujo Rocha
