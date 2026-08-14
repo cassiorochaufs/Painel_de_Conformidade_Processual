@@ -24,6 +24,7 @@ O repositório disponibiliza os principais componentes necessários para reprodu
 04_powerbi/
 05_bpmn/
 06_parametrizacao/
+07_validacao_dados/
 documentacao/
 README.md
 ```
