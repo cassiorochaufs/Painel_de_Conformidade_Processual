@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-VALIDAÇÃO DE DADOS DO SEI - V7
+VALIDAÇÃO DE DADOS DO SEI 
 ==============================
 
 Estratégia de verificação técnica:
